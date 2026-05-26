@@ -24,7 +24,7 @@
 </head>
 <body>
 
-    <div class="sync-status" id="syncStatus">Синхронизация...</div>
+    <div class="sync-status" id="syncStatus">Подключение к базе...</div>
 
     <div class="card">
         <h2>TRAINING LOG</h2>
@@ -53,7 +53,7 @@
     </div>
 
     <script>
-        // --- 1. ПИН-КОДЫ (замени на нужные) ---
+        // ПИН-КОДЫ (при желании можно изменить цифры на другие)
         const PIN_CODES = {
             "zhalou(Катя)": "1111",
             "ChattMa(Саша)": "2222",
@@ -64,12 +64,15 @@
             "Игрок 7(Имя)": "7777"
         };
 
-        // --- 2. НАСТРОЙКА БАЗЫ JSONBIN ---
-        // Сюда нужно вставить твой BIN_ID
-        const BIN_ID = "ВСТАВЬ_СЮДА_BIN_ID"; 
-        // Твой API-ключ уже добавлен
+        // НАСТРОЙКИ БАЗЫ ДАННЫХ
+        const BIN_ID = "6a1618d9f47d5c455c3ad442"; 
         const API_KEY = "$2a$10$93.jNawD.2c1x82k9W3naOY3.v8QkO2QLWtXl2X/LqgC9MdvinlX."; 
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+        const defaultPlayers = {
+            "zhalou(Катя)": 0, "ChattMa(Саша)": 0, "Blessed(Егор)": 0,
+            "Gerader(Коля)": 0, "pariiicide(Костя)": 0, "katsuryoku(Виталя)": 0, "Игрок 7(Имя)": 0
+        };
 
         let localState = null;
         let isSaving = false;
@@ -95,21 +98,40 @@
                 const response = await fetch(API_URL, {
                     headers: { 'X-Master-Key': API_KEY }
                 });
+                
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.message || `Ошибка сервера ${response.status}`);
+                }
+
                 const data = await response.json();
-                localState = data.record;
+                
+                if (data.record && data.record.players) {
+                    localState = data.record;
+                } else {
+                    localState = { players: defaultPlayers, currentSession: null };
+                }
+
                 updateUI();
                 syncStatus.textContent = "Синхронизировано ✅";
+                syncStatus.style.color = "#555";
             } catch (e) {
                 console.error("Ошибка:", e);
-                syncStatus.textContent = "Ошибка подключения к базе";
+                syncStatus.textContent = "Ошибка: " + e.message;
+                syncStatus.style.color = "red";
+                statusMessage.innerHTML = "<b>❌ Ошибка базы данных. Проверь настройки в JSONBin.</b>";
+                
+                localState = { players: defaultPlayers, currentSession: null };
+                updateUI();
             }
         }
 
         async function saveState() {
             isSaving = true;
             syncStatus.textContent = "Сохранение...";
+            syncStatus.style.color = "#555";
             try {
-                await fetch(API_URL, {
+                const response = await fetch(API_URL, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -117,10 +139,14 @@
                     },
                     body: JSON.stringify(localState)
                 });
+                
+                if (!response.ok) throw new Error("Ошибка при сохранении");
+                
                 syncStatus.textContent = "Синхронизировано ✅";
             } catch (e) {
                 console.error("Ошибка сохранения:", e);
                 syncStatus.textContent = "Ошибка при сохранении!";
+                syncStatus.style.color = "red";
             } finally {
                 isSaving = false;
             }
