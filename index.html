@@ -5,132 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Training Log & Leaderboard</title>
     <style>
-        body {
-            background-color: #050505;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .card {
-            background-color: #111111;
-            border: 1px solid #1f1f1f;
-            border-radius: 16px;
-            padding: 40px;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-            margin-bottom: 20px;
-            box-sizing: border-box;
-        }
-
-        h2 {
-            color: #dcb345;
-            text-align: center;
-            letter-spacing: 2px;
-            margin-bottom: 30px;
-            font-size: 24px;
-            text-transform: uppercase;
-            margin-top: 0;
-        }
-
-        select {
-            width: 100%;
-            padding: 15px;
-            background-color: #1a1a1a;
-            color: #ffffff;
-            border: 1px solid #333;
-            border-radius: 8px;
-            font-size: 16px;
-            margin-bottom: 25px;
-            appearance: none;
-            outline: none;
-            cursor: pointer;
-        }
-
-        .buttons-container {
-            display: flex;
-            gap: 15px;
-        }
-
-        button {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        button:hover {
-            opacity: 0.9;
-        }
-
-        #startBtn {
-            background-color: #dcb345;
-            color: #000000;
-        }
-
-        #endBtn {
-            background-color: #2a2a2a;
-            color: #ffffff;
-        }
-
-        button:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        .status {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #888;
-            min-height: 20px;
-        }
-
-        .sync-status {
-            font-size: 11px;
-            color: #555;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .leaderboard {
-            width: 100%;
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .leaderboard li {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 15px;
-            background-color: #1a1a1a;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            border: 1px solid #222;
-        }
-
-        .leaderboard li span:last-child {
-            color: #dcb345;
-            font-weight: bold;
-        }
+        body { background-color: #050505; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .card { background-color: #111111; border: 1px solid #1f1f1f; border-radius: 16px; padding: 40px; width: 100%; max-width: 400px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); margin-bottom: 20px; box-sizing: border-box; }
+        h2 { color: #dcb345; text-align: center; letter-spacing: 2px; margin-bottom: 30px; font-size: 24px; text-transform: uppercase; margin-top: 0; }
+        select { width: 100%; padding: 15px; background-color: #1a1a1a; color: #ffffff; border: 1px solid #333; border-radius: 8px; font-size: 16px; margin-bottom: 25px; appearance: none; outline: none; cursor: pointer; }
+        .buttons-container { display: flex; gap: 15px; }
+        button { flex: 1; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+        #startBtn { background-color: #dcb345; color: #000000; }
+        #endBtn { background-color: #2a2a2a; color: #ffffff; }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+        .status { margin-top: 20px; text-align: center; font-size: 14px; color: #888; min-height: 20px; }
+        .sync-status { font-size: 11px; color: #555; text-align: center; margin-bottom: 10px; }
+        .leaderboard { width: 100%; list-style: none; padding: 0; margin: 0; }
+        .leaderboard li { display: flex; justify-content: space-between; padding: 12px 15px; background-color: #1a1a1a; margin-bottom: 8px; border-radius: 8px; border: 1px solid #222; }
+        .leaderboard li span:last-child { color: #dcb345; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="sync-status" id="syncStatus">Синхронизация с облаком...</div>
+    <div class="sync-status" id="syncStatus">Синхронизация...</div>
 
     <div class="card">
         <h2>TRAINING LOG</h2>
@@ -155,29 +49,30 @@
 
     <div class="card">
         <h2>ЛИДЕРБОРД</h2>
-        <ul class="leaderboard" id="leaderboardList">
-            </ul>
+        <ul class="leaderboard" id="leaderboardList"></ul>
     </div>
 
     <script>
-        // Уникальный URL базы данных лично для вашей команды из 7 человек
-        const DB_URL = 'https://kvdb.io/MN96Xf66X6m7S6g6mS8vE9/team_state_prod';
-
-        // Стандартная структура, если база данных пуста
-        const defaultState = {
-            players: {
-                "zhalou(Катя)": 0,
-                "ChattMa(Саша)": 0,
-                "Blessed(Егор)": 0,
-                "Gerader(Коля)": 0,
-                "pariiicide(Костя)": 0,
-                "katsuryoku(Виталя)": 0,
-                "Игрок 7(Имя)": 0
-            },
-            currentSession: null
+        // --- 1. ПИН-КОДЫ (замени на нужные) ---
+        const PIN_CODES = {
+            "zhalou(Катя)": "1111",
+            "ChattMa(Саша)": "2222",
+            "Blessed(Егор)": "3333",
+            "Gerader(Коля)": "4444",
+            "pariiicide(Костя)": "5555",
+            "katsuryoku(Виталя)": "6666",
+            "Игрок 7(Имя)": "7777"
         };
 
-        let localState = { ...defaultState };
+        // --- 2. НАСТРОЙКА БАЗЫ JSONBIN ---
+        // Сюда нужно вставить твой BIN_ID
+        const BIN_ID = "ВСТАВЬ_СЮДА_BIN_ID"; 
+        // Твой API-ключ уже добавлен
+        const API_KEY = "$2a$10$93.jNawD.2c1x82k9W3naOY3.v8QkO2QLWtXl2X/LqgC9MdvinlX."; 
+        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+        let localState = null;
+        let isSaving = false;
 
         const playerSelect = document.getElementById('playerSelect');
         const startBtn = document.getElementById('startBtn');
@@ -194,41 +89,46 @@
             return `${hours}ч ${minutes}м ${seconds}с`;
         }
 
-        // Загрузка данных из облака
-        async function fetchCloudData() {
+        async function fetchState() {
+            if (isSaving) return;
             try {
-                const response = await fetch(DB_URL);
-                if (response.status === 404) {
-                    // База еще не создана, запишем дефолт
-                    await saveCloudData(defaultState);
-                    return defaultState;
-                }
+                const response = await fetch(API_URL, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
                 const data = await response.json();
-                return data;
+                localState = data.record;
+                updateUI();
+                syncStatus.textContent = "Синхронизировано ✅";
             } catch (e) {
-                console.error("Ошибка получения данных:", e);
-                syncStatus.textContent = "Ошибка сети. Проверьте интернет.";
-                return null;
+                console.error("Ошибка:", e);
+                syncStatus.textContent = "Ошибка подключения к базе";
             }
         }
 
-        // Сохранение данных в облако
-        async function saveCloudData(state) {
+        async function saveState() {
+            isSaving = true;
+            syncStatus.textContent = "Сохранение...";
             try {
-                syncStatus.textContent = "Сохранение в облако...";
-                await fetch(DB_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(state)
+                await fetch(API_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify(localState)
                 });
-                syncStatus.textContent = "Все данные синхронизированы";
+                syncStatus.textContent = "Синхронизировано ✅";
             } catch (e) {
                 console.error("Ошибка сохранения:", e);
-                syncStatus.textContent = "Не удалось сохранить в облако!";
+                syncStatus.textContent = "Ошибка при сохранении!";
+            } finally {
+                isSaving = false;
             }
         }
 
         function updateUI() {
-            // Кнопки управления сессией
+            if (!localState) return;
+
             if (localState.currentSession) {
                 playerSelect.value = localState.currentSession.player;
                 playerSelect.disabled = true;
@@ -242,75 +142,62 @@
                 statusMessage.textContent = "Все отдыхают. Готов к старту.";
             }
 
-            // Рендер лидерборда
             leaderboardList.innerHTML = '';
             const sortedPlayers = Object.entries(localState.players).sort((a, b) => b[1] - a[1]);
 
             sortedPlayers.forEach(([player, time]) => {
                 const li = document.createElement('li');
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = player;
-                const timeSpan = document.createElement('span');
-                timeSpan.textContent = formatTime(time);
-                
-                li.appendChild(nameSpan);
-                li.appendChild(timeSpan);
+                li.innerHTML = `<span>${player}</span><span>${formatTime(time)}</span>`;
                 leaderboardList.appendChild(li);
             });
         }
 
-        // Периодическое обновление (каждые 5 секунд)
-        async function syncLoop() {
-            const cloudData = await fetchCloudData();
-            if (cloudData) {
-                localState = cloudData;
-                updateUI();
-                if (syncStatus.textContent.includes("Синхронизация")) {
-                    syncStatus.textContent = "Данные обновлены";
-                }
-            }
-        }
-
-        // Старт тренировки
         startBtn.addEventListener('click', async () => {
             const selectedPlayer = playerSelect.value;
-            if (!selectedPlayer) {
-                alert("Выберите игрока!");
+            if (!selectedPlayer) return;
+
+            const enteredPin = prompt(`Введите ПИН-код для: ${selectedPlayer}`);
+            if (enteredPin !== PIN_CODES[selectedPlayer]) {
+                alert("❌ Неверный ПИН-код!");
                 return;
             }
 
             startBtn.disabled = true;
+            await fetchState(); 
+
             localState.currentSession = {
                 player: selectedPlayer,
                 startTime: Date.now()
             };
 
-            await saveCloudData(localState);
+            await saveState();
             updateUI();
         });
 
-        // Конец тренировки
         endBtn.addEventListener('click', async () => {
             if (!localState.currentSession) return;
-            endBtn.disabled = true;
+            
+            const currentPlayer = localState.currentSession.player;
+            const enteredPin = prompt(`Введите ПИН-код для завершения (${currentPlayer}):`);
+            
+            if (enteredPin !== PIN_CODES[currentPlayer]) {
+                alert("❌ Неверный ПИН-код!");
+                return;
+            }
 
+            endBtn.disabled = true;
             const duration = Date.now() - localState.currentSession.startTime;
             
-            if (!localState.players[localState.currentSession.player]) {
-                localState.players[localState.currentSession.player] = 0;
-            }
-            
-            localState.players[localState.currentSession.player] += duration;
+            localState.players[currentPlayer] += duration;
             localState.currentSession = null;
 
-            await saveCloudData(localState);
+            await saveState();
             playerSelect.value = "";
             updateUI();
         });
 
-        // Запуск
-        syncLoop();
-        setInterval(syncLoop, 5000); // автообновление каждые 5 сек
+        fetchState();
+        setInterval(fetchState, 5000);
     </script>
 </body>
 </html>
