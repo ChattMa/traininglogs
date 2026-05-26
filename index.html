@@ -30,14 +30,7 @@
         <h2>TRAINING LOG</h2>
         <select id="playerSelect">
             <option value="" disabled selected>КТО ТРЕНИРУЕТСЯ?</option>
-            <option value="zhalou(Катя)">zhalou(Катя)</option>
-            <option value="ChattMa(Саша)">ChattMa(Саша)</option>
-            <option value="Blessed(Егор)">Blessed(Егор)</option>
-            <option value="Gerader(Коля)">Gerader(Коля)</option>
-            <option value="pariiicide(Костя)">pariiicide(Костя)</option>
-            <option value="katsuryoku(Виталя)">katsuryoku(Виталя)</option>
-            <option value="ka1zo (Егор)">ka1zo (Егор)</option>
-        </select>
+            </select>
 
         <div class="buttons-container">
             <button id="startBtn" disabled>START</button>
@@ -53,26 +46,31 @@
     </div>
 
     <script>
-        // ПИН-КОДЫ (при желании можно изменить цифры на другие)
-        const PIN_CODES = {
+        // ========================================================
+        // НАСТРОЙКА КОМАНДЫ (Управляй списком игроков здесь)
+        // ========================================================
+        const TEAM_CONFIG = {
             "zhalou(Катя)": "9268",
             "ChattMa(Саша)": "8426",
             "Blessed(Егор)": "1591",
             "Gerader(Коля)": "9675",
             "pariiicide(Костя)": "2378",
             "katsuryoku(Виталя)": "8926",
-            "ka1zo (Егор)": "2724"
+            "ka1zo(Егор)": "2724"
         };
 
         // НАСТРОЙКИ БАЗЫ ДАННЫХ
         const BIN_ID = "6a1618d9f47d5c455c3ad442"; 
         const API_KEY = "$2a$10$93.jNawD.2c1x82k9W3naOY3.v8QkO2QLWtXl2X/LqgC9MdvinlX."; 
+        // ========================================================
+
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
-        const defaultPlayers = {
-            "zhalou(Катя)": 0, "ChattMa(Саша)": 0, "Blessed(Егор)": 0,
-            "Gerader(Коля)": 0, "pariiicide(Костя)": 0, "katsuryoku(Виталя)": 0, "ka1zo (Егор)": 0
-        };
+        // Автоматически создаем пустую структуру на основе TEAM_CONFIG
+        const defaultPlayers = {};
+        Object.keys(TEAM_CONFIG).forEach(player => {
+            defaultPlayers[player] = 0;
+        });
 
         let localState = null;
         let isSaving = false;
@@ -83,6 +81,18 @@
         const statusMessage = document.getElementById('statusMessage');
         const leaderboardList = document.getElementById('leaderboardList');
         const syncStatus = document.getElementById('syncStatus');
+
+        // Автоматическое заполнение выпадающего списка (Select)
+        function renderSelectOptions() {
+            // Очищаем всё, кроме первой дефолтной строчки
+            playerSelect.innerHTML = '<option value="" disabled selected>КТО ТРЕНИРУЕТСЯ?</option>';
+            Object.keys(TEAM_CONFIG).forEach(player => {
+                const option = document.createElement('option');
+                option.value = player;
+                option.textContent = player;
+                playerSelect.appendChild(option);
+            });
+        }
 
         function formatTime(ms) {
             let totalSeconds = Math.floor(ms / 1000);
@@ -108,6 +118,13 @@
                 
                 if (data.record && data.record.players) {
                     localState = data.record;
+                    
+                    // Если в базе нет кого-то из нового списка TEAM_CONFIG, добавляем его с 0 секунд
+                    Object.keys(TEAM_CONFIG).forEach(player => {
+                        if (localState.players[player] === undefined) {
+                            localState.players[player] = 0;
+                        }
+                    });
                 } else {
                     localState = { players: defaultPlayers, currentSession: null };
                 }
@@ -169,7 +186,11 @@
             }
 
             leaderboardList.innerHTML = '';
-            const sortedPlayers = Object.entries(localState.players).sort((a, b) => b[1] - a[1]);
+            
+            // Фильтруем лидерборд: показываем только тех игроков, которые есть в TEAM_CONFIG
+            const sortedPlayers = Object.entries(localState.players)
+                .filter(([player]) => TEAM_CONFIG[player] !== undefined)
+                .sort((a, b) => b[1] - a[1]);
 
             sortedPlayers.forEach(([player, time]) => {
                 const li = document.createElement('li');
@@ -183,7 +204,7 @@
             if (!selectedPlayer) return;
 
             const enteredPin = prompt(`Введите ПИН-код для: ${selectedPlayer}`);
-            if (enteredPin !== PIN_CODES[selectedPlayer]) {
+            if (enteredPin !== TEAM_CONFIG[selectedPlayer]) {
                 alert("❌ Неверный ПИН-код!");
                 return;
             }
@@ -204,16 +225,13 @@
             if (!localState.currentSession) return;
             
             const currentPlayer = localState.currentSession.player;
-            const enteredPin = prompt(`Введите ПИН-код для завершения (${currentPlayer}):`);
-            
-            if (enteredPin !== PIN_CODES[currentPlayer]) {
-                alert("❌ Неверный ПИН-код!");
-                return;
-            }
 
             endBtn.disabled = true;
             const duration = Date.now() - localState.currentSession.startTime;
             
+            if (localState.players[currentPlayer] === undefined) {
+                localState.players[currentPlayer] = 0;
+            }
             localState.players[currentPlayer] += duration;
             localState.currentSession = null;
 
@@ -222,6 +240,8 @@
             updateUI();
         });
 
+        // Инициализация
+        renderSelectOptions();
         fetchState();
         setInterval(fetchState, 5000);
     </script>
