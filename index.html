@@ -30,7 +30,7 @@
         <h2>TRAINING LOG</h2>
         <select id="playerSelect">
             <option value="" disabled selected>КТО ТРЕНИРУЕТСЯ?</option>
-            </select>
+        </select>
 
         <div class="buttons-container">
             <button id="startBtn" disabled>START</button>
@@ -49,15 +49,15 @@
         // ========================================================
         // НАСТРОЙКА КОМАНДЫ (Управляй списком игроков здесь)
         // ========================================================
-        const TEAM_CONFIG = {
-            "zhalou(Катя)": "9268",
-            "ChattMa(Саша)": "8426",
-            "Blessed(Егор)": "1591",
-            "Gerader(Коля)": "9675",
-            "pariiicide(Костя)": "2378",
-            "katsuryoku(Виталя)": "8926",
-            "ka1zo(Егор)": "2724"
-        };
+        const TEAM = [
+            "zhalou(Катя)",
+            "ChattMa(Саша)",
+            "Blessed(Егор)",
+            "Gerader(Коля)",
+            "pariiicide(Костя)",
+            "katsuryoku(Виталя)",
+            "ka1zo(Егор)"
+        ];
 
         // НАСТРОЙКИ БАЗЫ ДАННЫХ
         const BIN_ID = "6a1618d9f47d5c455c3ad442"; 
@@ -66,9 +66,8 @@
 
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
-        // Автоматически создаем пустую структуру на основе TEAM_CONFIG
         const defaultPlayers = {};
-        Object.keys(TEAM_CONFIG).forEach(player => {
+        TEAM.forEach(player => {
             defaultPlayers[player] = 0;
         });
 
@@ -82,11 +81,9 @@
         const leaderboardList = document.getElementById('leaderboardList');
         const syncStatus = document.getElementById('syncStatus');
 
-        // Автоматическое заполнение выпадающего списка (Select)
         function renderSelectOptions() {
-            // Очищаем всё, кроме первой дефолтной строчки
             playerSelect.innerHTML = '<option value="" disabled selected>КТО ТРЕНИРУЕТСЯ?</option>';
-            Object.keys(TEAM_CONFIG).forEach(player => {
+            TEAM.forEach(player => {
                 const option = document.createElement('option');
                 option.value = player;
                 option.textContent = player;
@@ -119,14 +116,16 @@
                 if (data.record && data.record.players) {
                     localState = data.record;
                     
-                    // Если в базе нет кого-то из нового списка TEAM_CONFIG, добавляем его с 0 секунд
-                    Object.keys(TEAM_CONFIG).forEach(player => {
+                    // Переход на новую систему параллельных сессий
+                    if (!localState.activeSessions) localState.activeSessions = {};
+                    
+                    TEAM.forEach(player => {
                         if (localState.players[player] === undefined) {
                             localState.players[player] = 0;
                         }
                     });
                 } else {
-                    localState = { players: defaultPlayers, currentSession: null };
+                    localState = { players: defaultPlayers, activeSessions: {} };
                 }
 
                 updateUI();
@@ -136,9 +135,9 @@
                 console.error("Ошибка:", e);
                 syncStatus.textContent = "Ошибка: " + e.message;
                 syncStatus.style.color = "red";
-                statusMessage.innerHTML = "<b>❌ Ошибка базы данных. Проверь настройки в JSONBin.</b>";
+                statusMessage.innerHTML = "<b>❌ Ошибка базы данных.</b>";
                 
-                localState = { players: defaultPlayers, currentSession: null };
+                localState = { players: defaultPlayers, activeSessions: {} };
                 updateUI();
             }
         }
@@ -172,24 +171,34 @@
         function updateUI() {
             if (!localState) return;
 
-            if (localState.currentSession) {
-                playerSelect.value = localState.currentSession.player;
-                playerSelect.disabled = true;
-                startBtn.disabled = true;
-                endBtn.disabled = false;
-                statusMessage.innerHTML = `🔥 Сейчас тренируется: <b>${localState.currentSession.player}</b>`;
+            const selectedPlayer = playerSelect.value;
+            const activePlayers = Object.keys(localState.activeSessions || {});
+
+            // Обновляем состояние кнопок для конкретно выбранного в списке человека
+            if (selectedPlayer) {
+                if (localState.activeSessions && localState.activeSessions[selectedPlayer]) {
+                    startBtn.disabled = true;
+                    endBtn.disabled = false;
+                } else {
+                    startBtn.disabled = false;
+                    endBtn.disabled = true;
+                }
             } else {
-                playerSelect.disabled = false;
-                startBtn.disabled = false;
+                startBtn.disabled = true;
                 endBtn.disabled = true;
+            }
+
+            // Обновляем текст статуса (показываем всех, кто сейчас тренируется)
+            if (activePlayers.length > 0) {
+                statusMessage.innerHTML = `🔥 Сейчас тренируются: <b>${activePlayers.join(', ')}</b>`;
+            } else {
                 statusMessage.textContent = "Все отдыхают. Готов к старту.";
             }
 
+            // Обновляем лидерборд
             leaderboardList.innerHTML = '';
-            
-            // Фильтруем лидерборд: показываем только тех игроков, которые есть в TEAM_CONFIG
             const sortedPlayers = Object.entries(localState.players)
-                .filter(([player]) => TEAM_CONFIG[player] !== undefined)
+                .filter(([player]) => TEAM.includes(player))
                 .sort((a, b) => b[1] - a[1]);
 
             sortedPlayers.forEach(([player, time]) => {
@@ -199,41 +208,42 @@
             });
         }
 
+        // Следим за тем, кого выбрали в выпадающем списке, чтобы сразу менять кнопки
+        playerSelect.addEventListener('change', updateUI);
+
         startBtn.addEventListener('click', async () => {
             const selectedPlayer = playerSelect.value;
             if (!selectedPlayer) return;
 
-            const enteredPin = prompt(`Введите ПИН-код для: ${selectedPlayer}`);
-            if (enteredPin !== TEAM_CONFIG[selectedPlayer]) {
-                alert("❌ Неверный ПИН-код!");
-                return;
-            }
+            const isConfirmed = confirm(`Начать тренировку для: ${selectedPlayer}?`);
+            if (!isConfirmed) return;
 
             startBtn.disabled = true;
             await fetchState(); 
 
-            localState.currentSession = {
-                player: selectedPlayer,
-                startTime: Date.now()
-            };
+            if (!localState.activeSessions) localState.activeSessions = {};
+            localState.activeSessions[selectedPlayer] = Date.now();
 
             await saveState();
             updateUI();
         });
 
         endBtn.addEventListener('click', async () => {
-            if (!localState.currentSession) return;
-            
-            const currentPlayer = localState.currentSession.player;
+            const selectedPlayer = playerSelect.value;
+            if (!selectedPlayer || !localState.activeSessions[selectedPlayer]) return;
+
+            const isConfirmed = confirm(`Завершить тренировку для: ${selectedPlayer}?`);
+            if (!isConfirmed) return;
 
             endBtn.disabled = true;
-            const duration = Date.now() - localState.currentSession.startTime;
+            const duration = Date.now() - localState.activeSessions[selectedPlayer];
             
-            if (localState.players[currentPlayer] === undefined) {
-                localState.players[currentPlayer] = 0;
+            if (localState.players[selectedPlayer] === undefined) {
+                localState.players[selectedPlayer] = 0;
             }
-            localState.players[currentPlayer] += duration;
-            localState.currentSession = null;
+            
+            localState.players[selectedPlayer] += duration;
+            delete localState.activeSessions[selectedPlayer];
 
             await saveState();
             playerSelect.value = "";
